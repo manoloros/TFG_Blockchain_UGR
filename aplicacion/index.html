@@ -1,0 +1,481 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <!-- Autor: Manuel Ros Rodriguez -->
+    <title>Interfaz web para comunicanos con la API REST</title>
+</head>
+<body>
+<script>
+
+/**
+ * Muestra la seccion indicada y oculta las demas
+ *
+ * @param id - El identificador de la seccion
+ *
+ */
+function mostrarFuncionalidad(id) {
+    var secciones = document.getElementsByTagName("section");
+
+    for (var i=0; i<secciones.length; i++)
+        secciones[i].style.display = "none";
+
+    document.getElementById(id).style.display = "block";
+}
+
+/**
+ * Funcion que procesa la peticion realizada, tiene acceso a los
+ * datos del formulario utilizado
+ *
+ * Primero comprueba la existencia de unos campos especificos, despues
+ * comprueba si hay que modificar la URL y por ultimo preparamos las
+ * variables a enviar.
+ *
+ * Campos especificos:
+ * El primer elemento que se encuentra es la url, siempre esta incluido
+ * El segundo elemento es el metodo, solo incluido si estamos ante un PUT
+ * El tercer elemento es la fecha, al cual le daremos el valor Date.now() y
+ * no siempre esta incluido
+ *
+ * @param formulario - El formulario desde el que se ha lanzado la peticion
+ *
+ */
+function procesarPeticion(formulario) {
+    // Vaciamos estado y return
+    var estado = formulario.elements[formulario.length-1].previousElementSibling.firstElementChild;
+    var respuesta = estado.parentElement.previousElementSibling.firstElementChild;
+
+    estado.innerHTML = "";
+    respuesta.innerHTML = "";
+
+    // Comprobamos campos especificos
+	var url = formulario.url.value;
+
+	var elementosProcesados = 1;
+	var continuar = true;
+
+	var metodo;
+	if (formulario.metodo != null) {
+		metodo = formulario.metodo.value;
+		elementosProcesados++;
+	} else
+		metodo = formulario.method;
+
+	var enviar = "";
+	if (formulario.fecha != null) {
+		enviar = "fecha="+Date.now()+"&";
+		elementosProcesados++;
+	}
+
+	// Preparamos la URL
+	var salir = false;
+	var contador = 1;
+	if (!url.includes("parametro"+contador))
+		salir = true;
+
+	while (!salir) {
+		var valor = formulario.elements[elementosProcesados].value;
+
+		if (valor === "") {
+			alert("Encontrada variable sin valor, no se ha enviado la peticion");
+			return false;
+		}
+
+		url = url.replace("parametro"+contador, valor);
+		contador++;
+		elementosProcesados++;
+
+		if (!url.includes("parametro"+contador))
+			salir = true;
+	}
+
+	// Variables a enviar
+	for (var i=elementosProcesados; i<(formulario.length-1); i++) {
+		var valor = formulario.elements[i].value;
+        var nombre = formulario.elements[i].name;
+
+		if (valor === "" && metodo !== "put" && nombre !== "preasignado") {
+			alert("Encontrada variable sin valor, no se ha enviado la peticion");
+			return false;
+		}
+
+		if (i != (formulario.length-2))
+			enviar = enviar + nombre + "=" + valor + "&";
+		else
+			enviar = enviar + nombre + "=" + valor;
+	}
+
+	// Si es un post o put tendremos que identificarnos
+	if (metodo !== "get"){
+		var usuario = document.getElementById("usuario").value;
+		var password = document.getElementById("password").value;
+
+		if (usuario === "" || password === "") {
+			alert("Debe iniciar sesion para esta peticion (Campos usuario y password no pueden estar vacios)");
+			return false;
+		}
+
+		enviar = enviar + "&usuario=" + usuario + "&password=" + password;
+	}
+
+
+	// Enviamos la peticion
+	var xhttp = new XMLHttpRequest();
+
+	xhttp.onreadystatechange = function() {
+		if (this.readyState == 4) {
+			estado.innerHTML = this.status;
+			respuesta.innerHTML = this.responseText;
+		}
+	};
+
+	xhttp.open(metodo, url, true);
+
+	if (metodo !== "get") {
+		xhttp.setRequestHeader("Content-type", "application/x-www-form-urlencoded");
+		xhttp.send(enviar);
+	} else
+		xhttp.send();
+
+
+	// Para evitar el comportamiento por defecto del formulario
+	return false;
+}
+
+</script>
+
+<button onclick="mostrarFuncionalidad('administrador')">Funcionalidad administrador</button>
+<button onclick="mostrarFuncionalidad('comunidad')">Funcionalidad comunidades autonomas</button>
+<button onclick="mostrarFuncionalidad('almacen')">Funcionalidad almacenes</button>
+<button onclick="mostrarFuncionalidad('suministro')">Funcionalidad suministros</button>
+
+<div style="font-size:20px; margin-top: 8px">Usuario: <input id="usuario" type="text" size="50" style="font-size:13px"></div>
+<div style="font-size:20px; margin-top: 8px">Password: <input id="password" type="text" size="50" style="font-size:13px"></div>
+
+<br>
+
+<section id="administrador">
+
+	<h1> Funcionalidad administrador </h1>
+
+	<form onsubmit="return procesarPeticion(this);" method="get">
+		<div style="font-size:20px; margin-top: 10px">GET /administradores </div>
+		<input type="hidden" name="url" value="/administradores">
+		<div style="font-size:20px; margin-top: 10px"> Return: <span></span></div>
+		<div style="font-size:20px; margin-top: 10px"> Estado de la peticion: <span></span></div>
+		<input type="submit" value="Realizar llamada" style="font-size:13px; margin-top: 10px">
+	</form>
+
+	<br>
+
+	<form onsubmit="return procesarPeticion(this);" method="post">
+		<div style="font-size:20px; margin-top: 10px">POST /administradores</div>
+		<input type="hidden" name="url" value="/administradores">
+		<div style="font-size:20px; margin-top: 10px">Formato variables:<br>
+		<br>
+			<label>nuevoAdministrador=</label><input type="text" size="50" style="font-size:13px" name="nuevoAdministrador"><br>
+		<br>
+		</div>
+		<div style="font-size:20px;"> Return: <span></span></div>
+		<div style="font-size:20px; margin-top: 10px"> Estado de la peticion: <span></span></div>
+		<input type="submit" value="Realizar llamada" style="font-size:13px; margin-top: 10px">
+	</form>
+
+</section>
+
+<section id="comunidad" style="display:none">
+
+	<h1> Funcionalidad comunidades </h1>
+
+	<form onsubmit="return procesarPeticion(this);" method="get">
+		<div style="font-size:20px; margin-top: 10px">GET /comunidades </div>
+		<input type="hidden" name="url" value="/comunidades">
+		<div style="font-size:20px; margin-top: 10px"> Return: <span></span></div>
+		<div style="font-size:20px; margin-top: 10px"> Estado de la peticion: <span></span></div>
+		<input type="submit" value="Realizar llamada" style="font-size:13px; margin-top: 10px">
+	</form>
+
+	<br>
+
+	<form onsubmit="return procesarPeticion(this);" method="get">
+		<div style="font-size:20px; margin-top: 10px">GET /comunidades/&ltnombre&gt </div>
+		<input type="hidden" name="url" value="/comunidades/parametro1">
+		<label style="font-size:20px; margin-top: 10px">nombre: </label> <input type="text" name="parametro1" size="50" style="font-size:13px; margin-top: 10px">
+		<div style="font-size:20px; margin-top: 10px"> Return: <span></span></div>
+		<div style="font-size:20px; margin-top: 10px"> Estado de la peticion: <span></span></div>
+		<input type="submit" value="Realizar llamada" style="font-size:13px; margin-top: 10px">
+	</form>
+
+	<br>
+
+	<form onsubmit="return procesarPeticion(this);" method="post">
+		<div style="font-size:20px; margin-top: 10px">POST /comunidades</div>
+		<input type="hidden" name="url" value="/comunidades">
+		<div style="font-size:20px; margin-top: 10px">Formato variables:<br>
+		<br>
+			<label>nombre=</label><input type="text" size="50" style="font-size:13px" name="nombre">&<br>
+			<label>informacion=</label><input type="text" size="50" style="font-size:13px" name="informacion"><br>
+		<br>
+		</div>
+		<div style="font-size:20px;"> Return: <span></span></div>
+		<div style="font-size:20px; margin-top: 10px"> Estado de la peticion: <span></span></div>
+		<input type="submit" value="Realizar llamada" style="font-size:13px; margin-top: 10px">
+	</form>
+
+	<br>
+
+	<form onsubmit="return procesarPeticion(this);" method="post">
+		<div style="font-size:20px; margin-top: 10px">PUT /comunidades/&ltnombre&gt</div>
+		<input type="hidden" name="url" value="/comunidades/parametro1">
+		<input type="hidden" name="metodo" value="put">
+		<label style="font-size:20px; margin-top: 10px">nombre: </label> <input type="text" name="parametro1" size="50" style="font-size:13px; margin-top: 10px">
+		<div style="font-size:20px; margin-top: 10px">Formato variables:<br>
+		<br>
+			<label>informacion=</label><input type="text" size="50" style="font-size:13px" name="informacion"><br>
+		<br>
+		</div>
+		<div style="font-size:20px;"> Return: <span></span></div>
+		<div style="font-size:20px; margin-top: 10px"> Estado de la peticion: <span></span></div>
+		<input type="submit" value="Realizar llamada" style="font-size:13px; margin-top: 10px">
+	</form>
+
+</section>
+
+<section id="almacen" style="display:none">
+
+	<h1> Funcionalidad almacenes </h1>
+
+	<form onsubmit="return procesarPeticion(this);" method="get">
+		<div style="font-size:20px; margin-top: 10px">GET /almacenes </div>
+		<input type="hidden" name="url" value="/almacenes">
+		<div style="font-size:20px; margin-top: 10px"> Return: <span></span></div>
+		<div style="font-size:20px; margin-top: 10px"> Estado de la peticion: <span></span></div>
+		<input type="submit" value="Realizar llamada" style="font-size:13px; margin-top: 10px">
+	</form>
+
+	<br>
+
+	<form onsubmit="return procesarPeticion(this);" method="get">
+		<div style="font-size:20px; margin-top: 10px">GET /almacenes/&ltdireccion&gt </div>
+		<input type="hidden" name="url" value="/almacenes/parametro1">
+		<label style="font-size:20px; margin-top: 10px">direccion: </label> <input type="text" name="parametro1" size="50" style="font-size:13px; margin-top: 10px">
+		<div style="font-size:20px; margin-top: 10px"> Return: <span></span></div>
+		<div style="font-size:20px; margin-top: 10px"> Estado de la peticion: <span></span></div>
+		<input type="submit" value="Realizar llamada" style="font-size:13px; margin-top: 10px">
+	</form>
+
+	<br>
+
+	<form onsubmit="return procesarPeticion(this);" method="post">
+		<div style="font-size:20px; margin-top: 10px">POST /almacenes</div>
+		<input type="hidden" name="url" value="/almacenes">
+		<div style="font-size:20px; margin-top: 10px">Formato variables:<br>
+		<br>
+			<label>direccionAlmacen=</label><input type="text" size="50" style="font-size:13px" name="direccionAlmacen">&<br>
+			<label>comunidad=</label><input type="text" size="50" style="font-size:13px" name="comunidad">&<br>
+			<label>informacion=</label><input type="text" size="50" style="font-size:13px" name="informacion">&<br>
+			<label>esDistritoSanitario=</label><input type="text" size="50" style="font-size:13px" name="esDistritoSanitario">& (true o false)<br>
+			<label>poblacion=</label><input type="text" size="50" style="font-size:13px" name="poblacion" value="0"> (ignoramos valor si no es distrito sanitario)<br>
+		<br>
+		</div>
+		<div style="font-size:20px;"> Return: <span></span></div>
+		<div style="font-size:20px; margin-top: 10px"> Estado de la peticion: <span></span></div>
+		<input type="submit" value="Realizar llamada" style="font-size:13px; margin-top: 10px">
+	</form>
+
+	<br>
+
+	<form onsubmit="return procesarPeticion(this);" method="post">
+		<div style="font-size:20px; margin-top: 10px">PUT /almacenes/&ltdireccion&gt</div>
+		<input type="hidden" name="url" value="/almacenes/parametro1">
+		<input type="hidden" name="metodo" value="put">
+		<label style="font-size:20px; margin-top: 10px">direccion: </label> <input type="text" name="parametro1" size="50" style="font-size:13px; margin-top: 10px">
+		<div style="font-size:20px; margin-top: 10px">Formato variables:<br>
+		<br>
+			<label>informacion=</label><input type="text" size="50" style="font-size:13px" name="informacion">& (en blanco si no se quiere modificar)<br>
+			<label>poblacion=</label><input type="text" size="50" style="font-size:13px" name="poblacion" value="-1"> (valor de -1 si no se quiere modificar)<br>
+		<br>
+		</div>
+		<div style="font-size:20px;"> Return: <span></span></div>
+		<div style="font-size:20px; margin-top: 10px"> Estado de la peticion: <span></span></div>
+		<input type="submit" value="Realizar llamada" style="font-size:13px; margin-top: 10px">
+	</form>
+
+	<br>
+
+	<form onsubmit="return procesarPeticion(this);" method="get">
+		<div style="font-size:20px; margin-top: 10px">GET /almacenes/&ltdireccion&gt/unidades </div>
+		<input type="hidden" name="url" value="/almacenes/parametro1/unidades">
+		<label style="font-size:20px; margin-top: 10px">direccion: </label> <input type="text" name="parametro1" size="50" style="font-size:13px; margin-top: 10px">
+		<div style="font-size:20px; margin-top: 10px"> Return: <span></span></div>
+		<div style="font-size:20px; margin-top: 10px"> Estado de la peticion: <span></span></div>
+		<input type="submit" value="Realizar llamada" style="font-size:13px; margin-top: 10px">
+	</form>
+
+	<br>
+
+	<form onsubmit="return procesarPeticion(this);" method="get">
+		<div style="font-size:20px; margin-top: 10px">GET /almacenes/&ltdireccion&gt/unidades-por-tipo </div>
+		<input type="hidden" name="url" value="/almacenes/parametro1/unidades-por-tipo">
+		<label style="font-size:20px; margin-top: 10px">direccion: </label> <input type="text" name="parametro1" size="50" style="font-size:13px; margin-top: 10px">
+		<div style="font-size:20px; margin-top: 10px"> Return: <span></span></div>
+		<div style="font-size:20px; margin-top: 10px"> Estado de la peticion: <span></span></div>
+		<input type="submit" value="Realizar llamada" style="font-size:13px; margin-top: 10px">
+	</form>
+
+	<br>
+
+	<form onsubmit="return procesarPeticion(this);" method="get">
+		<div style="font-size:20px; margin-top: 10px">GET /almacenes/&ltdireccion&gt/unidades/&lttipo&gt </div>
+		<input type="hidden" name="url" value="/almacenes/parametro1/unidades/parametro2">
+		<label style="font-size:20px; margin-top: 10px">direccion: </label> <input type="text" name="parametro1" size="50" style="font-size:13px; margin-top: 10px"><br>
+		<label style="font-size:20px; margin-top: 10px">tipo: </label> <input type="text" name="parametro2" size="50" style="font-size:13px; margin-top: 10px">
+		<div style="font-size:20px; margin-top: 10px"> Return: <span></span></div>
+		<div style="font-size:20px; margin-top: 10px"> Estado de la peticion: <span></span></div>
+		<input type="submit" value="Realizar llamada" style="font-size:13px; margin-top: 10px">
+	</form>
+
+</section>
+
+<section id="suministro" style="display:none">
+
+	<h1> Funcionalidad suministros </h1>
+
+	<form onsubmit="return procesarPeticion(this);" method="get">
+		<div style="font-size:20px; margin-top: 10px">GET /tipos-suministro </div>
+		<input type="hidden" name="url" value="/tipos-suministro">
+		<div style="font-size:20px; margin-top: 10px"> Return: <span></span></div>
+		<div style="font-size:20px; margin-top: 10px"> Estado de la peticion: <span></span></div>
+		<input type="submit" value="Realizar llamada" style="font-size:13px; margin-top: 10px">
+	</form>
+
+	<br>
+
+	<form onsubmit="return procesarPeticion(this);" method="get">
+		<div style="font-size:20px; margin-top: 10px">GET /tiposSuministro/&lttipo&gt </div>
+		<input type="hidden" name="url" value="/tipos-suministro/parametro1">
+		<label style="font-size:20px; margin-top: 10px">tipo: </label> <input type="text" name="parametro1" size="50" style="font-size:13px; margin-top: 10px">
+		<div style="font-size:20px; margin-top: 10px"> Return: <span></span></div>
+		<div style="font-size:20px; margin-top: 10px"> Estado de la peticion: <span></span></div>
+		<input type="submit" value="Realizar llamada" style="font-size:13px; margin-top: 10px">
+	</form>
+
+	<br>
+
+	<form onsubmit="return procesarPeticion(this);" method="post">
+		<div style="font-size:20px; margin-top: 10px">POST /tiposSuministro</div>
+		<input type="hidden" name="url" value="/tipos-suministro">
+		<div style="font-size:20px; margin-top: 10px">Formato variables:<br>
+		<br>
+			<label>tipo=</label><input type="text" size="50" style="font-size:13px" name="tipo"> <br>
+		<br>
+		</div>
+		<div style="font-size:20px;"> Return: <span></span></div>
+		<div style="font-size:20px; margin-top: 10px"> Estado de la peticion: <span></span></div>
+		<input type="submit" value="Realizar llamada" style="font-size:13px; margin-top: 10px">
+	</form>
+
+	<br>
+
+	<form onsubmit="return procesarPeticion(this);" method="get">
+		<div style="font-size:20px; margin-top: 10px">GET /suministros </div>
+		<input type="hidden" name="url" value="/suministros">
+		<div style="font-size:20px; margin-top: 10px"> Return: <span></span></div>
+		<div style="font-size:20px; margin-top: 10px"> Estado de la peticion: <span></span></div>
+		<input type="submit" value="Realizar llamada" style="font-size:13px; margin-top: 10px">
+	</form>
+
+	<br>
+
+	<form onsubmit="return procesarPeticion(this);" method="get">
+		<div style="font-size:20px; margin-top: 10px">GET /suministros/&ltidSuministro&gt </div>
+		<input type="hidden" name="url" value="/suministros/parametro1">
+		<label style="font-size:20px; margin-top: 10px">idSuministro: </label> <input type="text" name="parametro1" size="50" style="font-size:13px; margin-top: 10px">
+		<div style="font-size:20px; margin-top: 10px"> Return: <span></span></div>
+		<div style="font-size:20px; margin-top: 10px"> Estado de la peticion: <span></span></div>
+		<input type="submit" value="Realizar llamada" style="font-size:13px; margin-top: 10px">
+	</form>
+
+	<br>
+
+	<form onsubmit="return procesarPeticion(this);" method="get">
+		<div style="font-size:20px; margin-top: 10px">GET /suministros/&ltidSuministro&gt/trazabilidad </div>
+		<input type="hidden" name="url" value="/suministros/parametro1/trazabilidad">
+		<label style="font-size:20px; margin-top: 10px">idSuministro: </label> <input type="text" name="parametro1" size="50" style="font-size:13px; margin-top: 10px">
+		<div style="font-size:20px; margin-top: 10px"> Return: <span></span></div>
+		<div style="font-size:20px; margin-top: 10px"> Estado de la peticion: <span></span></div>
+		<input type="submit" value="Realizar llamada" style="font-size:13px; margin-top: 10px">
+	</form>
+
+	<br>
+
+	<form onsubmit="return procesarPeticion(this);" method="post">
+		<div style="font-size:20px; margin-top: 10px">POST /suministros</div>
+		<input type="hidden" name="url" value="/suministros">
+        <input type="hidden" name="fecha">
+		<div style="font-size:20px; margin-top: 10px">Formato variables:<br>
+		<br>
+			<label>tipoSuministro=</label><input type="text" size="50" style="font-size:13px" name="tipoSuministro">&<br>
+			<label>tamanoSuministro=</label><input type="text" size="50" style="font-size:13px" name="tamanoSuministro">&<br>
+			<label>preasignado=</label><input type="text" size="50" style="font-size:13px" name="preasignado"> Si esta preasignado a una comunidad indicamos la comunidad en el campo preasignado,
+			si no lo dejamos vacio <br>
+		<br>
+		</div>
+		<div style="font-size:20px;"> Return: <span></span></div>
+		<div style="font-size:20px; margin-top: 10px"> Estado de la peticion: <span></span></div>
+		<input type="submit" value="Realizar llamada" style="font-size:13px; margin-top: 10px">
+	</form>
+
+	<br>
+
+	<form onsubmit="return procesarPeticion(this);" method="post">
+		<div style="font-size:20px; margin-top: 10px">POST /suministros/&ltidSuministro&gt/trazabilidad (salida)</div>
+		<input type="hidden" name="url" value="/suministros/parametro1/trazabilidad">
+		<input type="hidden" name="fecha">
+		<label style="font-size:20px; margin-top: 10px">idSuministro: </label> <input type="text" name="parametro1" size="50" style="font-size:13px; margin-top: 10px">
+		<div style="font-size:20px; margin-top: 10px">Formato variables:<br>
+		<br>
+			<label>tipo=</label><input type="text" size="50" style="font-size:13px" name="tipo" value="salida"><br>
+		<br>
+		</div>
+		<div style="font-size:20px;"> Return: <span></span></div>
+		<div style="font-size:20px; margin-top: 10px"> Estado de la peticion: <span></span></div>
+		<input type="submit" value="Realizar llamada" style="font-size:13px; margin-top: 10px">
+	</form>
+
+	<br>
+
+	<form onsubmit="return procesarPeticion(this);" method="post">
+		<div style="font-size:20px; margin-top: 10px">POST /suministros/&ltidSuministro&gt/trazabilidad (llegada)</div>
+		<input type="hidden" name="url" value="/suministros/parametro1/trazabilidad">
+		<input type="hidden" name="fecha">
+		<label style="font-size:20px; margin-top: 10px">idSuministro: </label> <input type="text" name="parametro1" size="50" style="font-size:13px; margin-top: 10px">
+		<div style="font-size:20px; margin-top: 10px">Formato variables:<br>
+		<br>
+			<label>tipo=</label><input type="text" size="50" style="font-size:13px" name="tipo" value="llegada"><br>
+		<br>
+		</div>
+		<div style="font-size:20px;"> Return: <span></span></div>
+		<div style="font-size:20px; margin-top: 10px"> Estado de la peticion: <span></span></div>
+		<input type="submit" value="Realizar llamada" style="font-size:13px; margin-top: 10px">
+	</form>
+
+	<br>
+
+	<form onsubmit="return procesarPeticion(this);" method="post">
+		<div style="font-size:20px; margin-top: 10px">POST /suministros/&ltidSuministro&gt/trazabilidad (utilizar)</div>
+		<input type="hidden" name="url" value="/suministros/parametro1/trazabilidad">
+		<input type="hidden" name="fecha">
+		<label style="font-size:20px; margin-top: 10px">idSuministro: </label> <input type="text" name="parametro1" size="50" style="font-size:13px; margin-top: 10px">
+		<div style="font-size:20px; margin-top: 10px">Formato variables:<br>
+		<br>
+			<label>tipo=</label><input type="text" size="50" style="font-size:13px" name="tipo" value="utilizar"><br>
+		<br>
+		</div>
+		<div style="font-size:20px;"> Return: <span></span></div>
+		<div style="font-size:20px; margin-top: 10px"> Estado de la peticion: <span></span></div>
+		<input type="submit" value="Realizar llamada" style="font-size:13px; margin-top: 10px">
+	</form>
+
+</section>
+</body>
+</html>

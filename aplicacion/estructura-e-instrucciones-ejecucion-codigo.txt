@@ -1,0 +1,46 @@
+Archivos incluidos:
+
+inicializar.js: Pequeno script que utilizamos que llama a los metodos de los contratos y los inicializa.
+api.js: La API REST implementada.
+En la carpeta contracts tenemos el codigo de los diferentes contratos que estan explicados en el TFG.
+
+Para compilar y ejecutar el codigo es necesario tener instalado Node.js e instalar los siguientes paquetes usando npm:
+
+npm init
+npm install web3
+npm install @openzeppelin/cli
+npm install @openzeppelin/contract-loader
+npm install @openzeppelin/contracts
+npm install express
+
+El siguiente paso sera iniciar OpenZeppelin:
+
+npx oz init
+
+Una vez terminado compilaremos el codigo de los contratos utilizando el compilador incluido en OpenZeppelin activando la opcion optimizer:
+
+npx oz compile --optimizer on
+
+Deberemos crear un nodo de una red blockchain, conectarnos a el y subir los contratos. Para subir los contratos tendremos que crear una cuenta Ethereum,
+como crear una red blockchain y como crear cuentas Ethereum se encuentra explicado en el TFG.
+Tambien seria posible conectarnos a alguna de las redes blockchain de prueba que Ethereum tiene montadas.
+
+Para desplegar los contratos en la red blockchain utilizamos el siguiente comando:
+
+npx oz deploy
+
+Una vez desplegados, tendremos sus direcciones que deberemos incluir en el codigo de api.js y inicializar.js, en sus variables correspondientes (direccionAccesoBlockchain y similares). En estos
+archivos debemos realizar otros dos cambios, indicar el directorio que esta utilizando el nodo de la red blockchain en la variable web3 y la cuenta utilizada para subir los contratos
+en la variable cuentaAutorizada. Si no estamos seguros de que cuenta se ha utilizado podemos ejecutar el siguiente comando y sera la primera que aparezca: 
+
+npx oz accounts
+
+Una vez hecho todo esto ejecutamos inicializar.js:
+
+node inicializar.js
+
+Y ya podremos ejecutar la API y interactuar con los contratos:
+
+node api.js
+
+Con esto podemos con nuestro navegador web acceder a localhost y se nos devolvera index.html y mediante esta pagina web simple podremos interactuar con la blockchain.
